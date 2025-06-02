@@ -55,7 +55,7 @@ def bot():
                     if (tipo == "BUY" and precio <= limite) or (tipo == "SELL" and precio >= limite):
                         nombre = ofertas[0]["advertiser"]["nickName"]
                         enlace = f"https://p2p.binance.com/es/advertiserDetail?advertiserNo={ofertas[0]['advertiser']['userNo']}"
-                        msg = f"💱 *{tipo}* oferta de *{moneda}*
+                        msg = f"💱 *{tipo}* oferta de *{moneda}*"
 👤 Vendedor: {nombre}
 💰 Precio: *{precio} Bs.*
 🔗 [Ver Oferta]({enlace})"
