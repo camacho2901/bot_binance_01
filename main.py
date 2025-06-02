@@ -1,78 +1,44 @@
-import json
+from flask import Flask, request, jsonify
 import requests
-import time
-from flask import Flask
-from threading import Thread
-
-with open("config.json") as f:
-    config = json.load(f)
-
-TOKEN = config["telegram_token"]
-CHAT_ID = config["telegram_user_id"]
-MONEDAS = config["monedas"]
-INTERVALO = config["intervalo_segundos"]
-LIMITES = config["limites"]
-
-def enviar_mensaje(mensaje):
-    url = f"https://api.telegram.org/bot{TOKEN}/sendMessage"
-    data = {
-        "chat_id": CHAT_ID,
-        "text": mensaje,
-        "parse_mode": "Markdown"
-    }
-    requests.post(url, data=data)
-
-def obtener_ofertas(moneda, tipo):
-    url = "https://p2p.binance.com/bapi/c2c/v2/friendly/c2c/adv/search"
-    headers = {
-        "Content-Type": "application/json"
-    }
-    data = {
-        "asset": moneda,
-        "fiat": "BOB",
-        "tradeType": tipo,
-        "page": 1,
-        "rows": 1,
-        "payTypes": [],
-        "publisherType": None
-    }
-    try:
-        response = requests.post(url, headers=headers, json=data)
-        if response.status_code == 200:
-            return response.json()["data"]
-    except Exception as e:
-        print("Error al obtener ofertas:", e)
-    return []
-
-def bot():
-    while True:
-        for moneda in MONEDAS:
-            for tipo in ["BUY", "SELL"]:
-                ofertas = obtener_ofertas(moneda, tipo)
-                if ofertas:
-                    precio = float(ofertas[0]["adv"]["price"])
-                    limite = LIMITES[moneda]["buy_max"] if tipo == "BUY" else LIMITES[moneda]["sell_min"]
-                    if (tipo == "BUY" and precio <= limite) or (tipo == "SELL" and precio >= limite):
-                        nombre = ofertas[0]["advertiser"]["nickName"]
-                        enlace = f"https://p2p.binance.com/es/advertiserDetail?advertiserNo={ofertas[0]['advertiser']['userNo']}"
-                        msg = (
-                            f"💱 *{tipo}* oferta de *{moneda}*\n"
-                            f"👤 Vendedor: {nombre}\n"
-                            f"💰 Precio: *{precio} Bs.*\n"
-                            f"🔗 [Ver Oferta]({enlace})"
-                        )
-                        enviar_mensaje(msg)
-        time.sleep(INTERVALO)
+import os
 
 app = Flask(__name__)
 
-@app.route('/')
-def home():
-    return "✅ Bot activo", 200
+# 🟢 Token y chat ID de Telegram
+TELEGRAM_BOT_TOKEN = os.environ.get("TELEGRAM_BOT_TOKEN", "6920302085:AAHRoc_dmnFHTkAUwK_f3ayT3LZpgwRX6zg")
+TELEGRAM_USER_ID = os.environ.get("TELEGRAM_USER_ID", "1162543748")
 
-def run_web():
-    app.run(host='0.0.0.0', port=3000)
+# 🟢 URL de la API de Telegram
+TELEGRAM_API_URL = f"https://api.telegram.org/bot{TELEGRAM_BOT_TOKEN}/sendMessage"
+
+@app.route("/")
+def home():
+    return "Bot de Telegram funcionando correctamente ✅"
+
+@app.route("/mensaje", methods=["POST"])
+def enviar_mensaje():
+    try:
+        data = request.get_json()
+        mensaje = data.get("mensaje")
+
+        if not mensaje:
+            return jsonify({"error": "Falta el campo 'mensaje'"}), 400
+
+        payload = {
+            "chat_id": TELEGRAM_USER_ID,
+            "text": mensaje
+        }
+
+        response = requests.post(TELEGRAM_API_URL, json=payload)
+
+        if response.ok:
+            return jsonify({"estado": "enviado", "respuesta": response.json()}), 200
+        else:
+            return jsonify({"estado": "error", "respuesta": response.text}), 500
+
+    except Exception as e:
+        return jsonify({"estado": "error", "mensaje": str(e)}), 500
 
 if __name__ == "__main__":
-    Thread(target=bot).start()
-    Thread(target=run_web).start()
+    port = int(os.environ.get("PORT", 5000))
+    app.run(host="0.0.0.0", port=port)
