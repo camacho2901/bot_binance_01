@@ -1,0 +1,11 @@
+{
+    "telegram_token": "TU_TOKEN_AQUI",
+    "telegram_user_id": "TU_CHAT_ID",
+    "monedas": ["USDT", "USDC", "BTC"],
+    "intervalo_segundos": 60,
+    "limites": {
+        "USDT": { "buy_max": 6.9, "sell_min": 7.2 },
+        "USDC": { "buy_max": 6.9, "sell_min": 7.2 },
+        "BTC": { "buy_max": 400000, "sell_min": 450000 }
+    }
+}
